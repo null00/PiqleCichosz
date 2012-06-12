@@ -23,6 +23,7 @@ package algorithms;
  */
 
 import integrated.BoltzmannSelector;
+import integrated.RouletteWheelSelector;
 
 import java.util.Iterator;
 import java.util.Random;
@@ -155,14 +156,14 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 * <ul>
 	 * Roulette wheel or Boltzmann selection makes epsilon useless.
 	 */
-	protected boolean rouletteWheel = false;
+	protected RouletteWheelSelector rws;
 
 	protected boolean epsilonGreedy = true;
 
 	protected BoltzmannSelector bs;
 
 	public void setRouletteWheel() {
-		rouletteWheel = true;
+		rws.setRouletteWheel(true);
 		epsilonGreedy = false;
 		bs.setBoltzmann(false);
 	}
@@ -170,19 +171,15 @@ abstract public class AbstractMemorySelector implements ISelector {
 	/** Set the epsilon-greedy policy */
 	public void setEpsilonGreedy() {
 		epsilonGreedy = true;
-		rouletteWheel = false;
+		rws.setRouletteWheel(false);
 		bs.setBoltzmann(false);
 	}
 
 	/** Set Boltzmann selection */
 	public void setBoltzmann() {
 		epsilonGreedy = false;
-		rouletteWheel = false;
+		rws.setRouletteWheel(false);
 		bs.setBoltzmann(true);
-	}
-
-	public boolean getRouletteWheel() {
-		return rouletteWheel;
 	}
 
 	public boolean getEpsilonGreedy() {
@@ -242,37 +239,13 @@ abstract public class AbstractMemorySelector implements ISelector {
 
 	/** Choose one of the legal moves */
 	public IAction getChoice(ActionList l) {
-		if (rouletteWheel)
-			return rouletteWheelChoice(l);
+		if (rws.isRouletteWheel())
+			return rws.choice(l);
 		if (epsilonGreedy)
 			return epsilonGreedyChoice(l);
 		if (bs.isBoltzmann())
 			return bs.choice(l);
 		return null;
-	}
-
-	/**
-	 * Roulette Wheel selection of the next action : the probability for an
-	 * action to be chosen is relative to its Q(s,a) value.
-	 * 
-	 * TODO DEBUG : not valid if Q(s,a) can be negative !!!
-	 */
-
-	private IAction rouletteWheelChoice(ActionList l) {
-		if (l.size() == 0)
-			return null;
-		IState s = l.getState();
-		double sum = 0;
-		for (int i = 0; i < l.size(); i++)
-			sum += memory.get(s, l.get(i)) + 1;
-		double choix = generator.nextDouble() * sum;
-		int indice = 0;
-		double partialSum = memory.get(s, l.get(indice)) + 1;
-		while (choix > partialSum) {
-			indice++;
-			partialSum += 1 + memory.get(s, l.get(indice));
-		}
-		return l.get(indice);
 	}
 
 	/** Epsilon-greedy choice of next action */
