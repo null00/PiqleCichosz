@@ -19,6 +19,7 @@ public class Sarsa extends AbstractMemorySelector {
 
 	public Sarsa(IDefaultValueChooser dvc) {
 		memory = new RewardMemorizer(dvc);
+		bs = new BoltzmannSelector(memory);
 	}
 
 	public void learn(IState s1, IState s2, IAction a, double reward) {

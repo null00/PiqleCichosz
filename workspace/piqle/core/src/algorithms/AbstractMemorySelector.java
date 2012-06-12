@@ -22,8 +22,10 @@ package algorithms;
  *
  */
 
+import integrated.BoltzmannSelector;
+
 import java.util.Iterator;
-import java.util.Random; 
+import java.util.Random;
 
 import qlearning.IRewardStore;
 import dataset.Dataset;
@@ -31,14 +33,13 @@ import environment.ActionList;
 import environment.IAction;
 import environment.IState;
 
-
 /**
  * The base of all Q-Learning-like algorithms :
  * 
  * <ul>
- * <li> Provides a structure to memorize or compute the Q(s,a) </li>
- * <li> Contains all the parameters used in the Q-Learning update rules </li>
- * <li> Contains all the parameters used to control convergence</li>
+ * <li>Provides a structure to memorize or compute the Q(s,a)</li>
+ * <li>Contains all the parameters used in the Q-Learning update rules</li>
+ * <li>Contains all the parameters used to control convergence</li>
  * </ul>
  * 
  * 
@@ -47,30 +48,26 @@ import environment.IState;
  * @version $Revision: 1.0 $
  * 
  */
-/* October 4th 2006 : return to the old version, where boltzmann, epsilon-greedy
- *  and rouletteWheel are declared inside this class : 
- *  too much problems in defining and monitoring the parameters of each
- *  choosing strategy (epsilon, tau, modifying epsilon...) (fd)
- * 
+/*
+ * October 4th 2006 : return to the old version, where boltzmann, epsilon-greedy
+ * and rouletteWheel are declared inside this class : too much problems in
+ * defining and monitoring the parameters of each choosing strategy (epsilon,
+ * tau, modifying epsilon...) (fd)
  */
 abstract public class AbstractMemorySelector implements ISelector {
 
 	/** Memorizing or computing Q(s,a) */
 	protected IRewardStore memory;
 
-	/** The parameter for Boltzmann Action selection Strategy */
-	protected double tau=0.5; 
-
 	/** Learning rate */
 	protected double alpha = 0.9;
 
 	/** discount rate */
 	protected double gamma = 0.9;
-	
-	protected double epsilon=0.5; 
-	
-	private Random generator=new Random();
 
+	protected double epsilon = 0.5;
+
+	private Random generator = new Random();
 
 	/**
 	 * Factor by which we multiply alpha at each learning step (geometric decay)<br>
@@ -96,6 +93,7 @@ abstract public class AbstractMemorySelector implements ISelector {
 	public void setGamma(double g) {
 		this.gamma = g;
 	}
+
 	public void setDecay(double d) {
 		this.decayAlpha = d;
 	}
@@ -123,8 +121,8 @@ abstract public class AbstractMemorySelector implements ISelector {
 	/**
 	 * Alpha decay methods
 	 * <ul>
-	 * <li> Geometric : use decayAlpha </li>
-	 * <li> Exponential : use alphaDecayPower (default)</li>
+	 * <li>Geometric : use decayAlpha</li>
+	 * <li>Exponential : use alphaDecayPower (default)</li>
 	 * <ul>
 	 */
 	protected boolean geometricDecay = false;
@@ -140,8 +138,8 @@ abstract public class AbstractMemorySelector implements ISelector {
 	/**
 	 * How convergence is controlled ?
 	 * <ul>
-	 * <li> true : alpha decays geometrically </li>
-	 * <li> false : alpha decays exponentially</li>
+	 * <li>true : alpha decays geometrically</li>
+	 * <li>false : alpha decays exponentially</li>
 	 * </ul>
 	 */
 	public boolean getGeometricDecay() {
@@ -153,7 +151,7 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 * <ul>
 	 * <li>epsilon-greedy</li>
 	 * <li>Roulette wheel selection</li>
-	 * <li>Boltzmann </li>
+	 * <li>Boltzmann</li>
 	 * <ul>
 	 * Roulette wheel or Boltzmann selection makes epsilon useless.
 	 */
@@ -161,40 +159,34 @@ abstract public class AbstractMemorySelector implements ISelector {
 
 	protected boolean epsilonGreedy = true;
 
-	protected boolean boltzmann = false;
-	
-
+	protected BoltzmannSelector bs;
 
 	public void setRouletteWheel() {
 		rouletteWheel = true;
 		epsilonGreedy = false;
-		boltzmann = false;
+		bs.setBoltzmann(false);
 	}
 
 	/** Set the epsilon-greedy policy */
 	public void setEpsilonGreedy() {
 		epsilonGreedy = true;
 		rouletteWheel = false;
-		boltzmann = false;
+		bs.setBoltzmann(false);
 	}
 
 	/** Set Boltzmann selection */
 	public void setBoltzmann() {
 		epsilonGreedy = false;
 		rouletteWheel = false;
-		boltzmann = true;
+		bs.setBoltzmann(true);
 	}
 
 	public boolean getRouletteWheel() {
-		return rouletteWheel; 
+		return rouletteWheel;
 	}
 
 	public boolean getEpsilonGreedy() {
 		return epsilonGreedy;
-	}
-
-	public boolean getBoltzmann() {
-		return boltzmann;
 	}
 
 	/** Finding Q(s,a) */
@@ -216,8 +208,9 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 * @param a
 	 *            the chosen action.
 	 * 
-	 * <a href="http://www.cs.ualberta.ca/~sutton/book/ebook/node65.html">Sutton &
-	 * Barto p 149 Q-Learning</a>
+	 *            <a href=
+	 *            "http://www.cs.ualberta.ca/~sutton/book/ebook/node65.html"
+	 *            >Sutton & Barto p 149 Q-Learning</a>
 	 * @param reward
 	 *            immediate reward.
 	 */
@@ -253,73 +246,64 @@ abstract public class AbstractMemorySelector implements ISelector {
 			return rouletteWheelChoice(l);
 		if (epsilonGreedy)
 			return epsilonGreedyChoice(l);
-		if (boltzmann)
-			return boltzmannChoice(l);
+		if (bs.isBoltzmann())
+			return bs.choice(l);
 		return null;
 	}
-	 /** Roulette Wheel selection of the next action : the probability for an action to be chosen is relative to its Q(s,a) value.
 
-    TODO DEBUG : not valid if Q(s,a) can be negative !!!*/
+	/**
+	 * Roulette Wheel selection of the next action : the probability for an
+	 * action to be chosen is relative to its Q(s,a) value.
+	 * 
+	 * TODO DEBUG : not valid if Q(s,a) can be negative !!!
+	 */
 
-	private IAction rouletteWheelChoice(ActionList l){
-		if(l.size()==0) return null; 
-		IState s=l.getState();
-		double sum=0; 
-		for(int i=0;i<l.size();i++) sum+=memory.get(s,l.get(i))+1; 
-		double choix=generator.nextDouble()*sum; 
-		int indice=0;
-		double partialSum=memory.get(s,l.get(indice))+1; 
-		while(choix>partialSum){
-			  indice++; 
-			  partialSum+=1+memory.get(s,l.get(indice)); 
+	private IAction rouletteWheelChoice(ActionList l) {
+		if (l.size() == 0)
+			return null;
+		IState s = l.getState();
+		double sum = 0;
+		for (int i = 0; i < l.size(); i++)
+			sum += memory.get(s, l.get(i)) + 1;
+		double choix = generator.nextDouble() * sum;
+		int indice = 0;
+		double partialSum = memory.get(s, l.get(indice)) + 1;
+		while (choix > partialSum) {
+			indice++;
+			partialSum += 1 + memory.get(s, l.get(indice));
 		}
-		return l.get(indice);	
+		return l.get(indice);
 	}
-	
+
 	/** Epsilon-greedy choice of next action */
-	private IAction epsilonGreedyChoice(ActionList l){
-		if(l.size()==0) return null;
-		IState s=l.getState(); 	
-		IAction meilleure=l.get(0); 
-		double maxqsap=memory.get(s,meilleure);
+	private IAction epsilonGreedyChoice(ActionList l) {
+		if (l.size() == 0)
+			return null;
+		IState s = l.getState();
+		IAction meilleure = l.get(0);
+		double maxqsap = memory.get(s, meilleure);
 		// TODO : might use an iterator
-		for(int i=1;i<l.size();i++){
-		    IAction a=l.get(i); 
-		    double qsap=memory.get(s,a);
-		    if(qsap>maxqsap) {
-			maxqsap=qsap;  
-			meilleure=a;
-		    }
+		for (int i = 1; i < l.size(); i++) {
+			IAction a = l.get(i);
+			double qsap = memory.get(s, a);
+			if (qsap > maxqsap) {
+				maxqsap = qsap;
+				meilleure = a;
+			}
 		}
 		// TODO Beginning the method with this test should speed up the program
-		if(generator.nextDouble()>this.epsilon) return meilleure; 
-		else 
-		    return l.get(generator.nextInt(l.size())); 
+		if (generator.nextDouble() > this.epsilon)
+			return meilleure;
+		else
+			return l.get(generator.nextInt(l.size()));
 	}
 
-	/** Chooses an action according to the Boltzmann protocol */
-	private IAction boltzmannChoice(ActionList l){
-		if(l.size()==0) return null; 
-		IState s=l.getState();
-		double sum=0; 
-		double tab[]=new double[l.size()]; 
-		for(int i=0;i<l.size();i++) {
-		    sum+=Math.exp(memory.get(s,l.get(i))/this.tau); 
-		    tab[i]=sum; 
-		}    
-		double choix=generator.nextDouble()*sum; 
-		for(int i=0;i<l.size();i++){
-		    if(choix<=tab[i]) return l.get(i);
-		}
-		System.err.println(choix+ " "+"Wrong");
-		System.exit(-1); 
-		return null;
-	}
 	/** Auxiliary/debug method : find the best action from a state. */
 	public IAction bestAction(IState s) {
 		ActionList l = s.getActionList();
 		Iterator<IAction> iterator = l.iterator();
-		if(l.size()==0) return null;
+		if (l.size() == 0)
+			return null;
 		IAction meilleure = iterator.next();
 		double maxqsap = memory.get(s, meilleure);
 		while (iterator.hasNext()) {
@@ -341,21 +325,6 @@ abstract public class AbstractMemorySelector implements ISelector {
 		return memory.extractDataset();
 	}
 
-	
-	/**
-	 * @return the tau used in Boltzmann Action selection strategy
-	 */
-	public double getTau() {
-		return tau;
-	}
-
-	/**
-	 * @param tau the tau to set in the Boltzmann Action selection strategy
-	 */
-	public void setTau(double tau) {
-		this.tau = tau;
-	}
-
 	/**
 	 * @return the epsilon
 	 */
@@ -364,10 +333,26 @@ abstract public class AbstractMemorySelector implements ISelector {
 	}
 
 	/**
-	 * @param epsilon the epsilon to set
+	 * @param epsilon
+	 *            the epsilon to set
 	 */
 	public void setEpsilon(double epsilon) {
 		this.epsilon = epsilon;
+	}
+
+	/**
+	 * @return the tau
+	 */
+	public double getTau() {
+		return bs.getTau();
+	}
+
+	/**
+	 * @param tau
+	 *            the tau to set
+	 */
+	public void setTau(double tau) {
+		this.bs.setTau(tau);
 	}
 
 }
