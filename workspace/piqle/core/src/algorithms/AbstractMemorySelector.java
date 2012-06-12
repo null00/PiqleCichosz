@@ -23,6 +23,7 @@ package algorithms;
  */
 
 import integrated.BoltzmannSelector;
+import integrated.EpsilonGreedySelector;
 import integrated.RouletteWheelSelector;
 
 import java.util.Iterator;
@@ -65,8 +66,6 @@ abstract public class AbstractMemorySelector implements ISelector {
 
 	/** discount rate */
 	protected double gamma = 0.9;
-
-	protected double epsilon = 0.5;
 
 	private Random generator = new Random();
 
@@ -158,32 +157,28 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 */
 	protected RouletteWheelSelector rws;
 
-	protected boolean epsilonGreedy = true;
+	protected EpsilonGreedySelector egs;
 
 	protected BoltzmannSelector bs;
 
 	public void setRouletteWheel() {
 		rws.setRouletteWheel(true);
-		epsilonGreedy = false;
+		egs.setEpsilonGreedy(false);
 		bs.setBoltzmann(false);
 	}
 
 	/** Set the epsilon-greedy policy */
 	public void setEpsilonGreedy() {
-		epsilonGreedy = true;
+		egs.setEpsilonGreedy(true);
 		rws.setRouletteWheel(false);
 		bs.setBoltzmann(false);
 	}
 
 	/** Set Boltzmann selection */
 	public void setBoltzmann() {
-		epsilonGreedy = false;
+		egs.setEpsilonGreedy(false);
 		rws.setRouletteWheel(false);
 		bs.setBoltzmann(true);
-	}
-
-	public boolean getEpsilonGreedy() {
-		return epsilonGreedy;
 	}
 
 	/** Finding Q(s,a) */
@@ -241,34 +236,11 @@ abstract public class AbstractMemorySelector implements ISelector {
 	public IAction getChoice(ActionList l) {
 		if (rws.isRouletteWheel())
 			return rws.choice(l);
-		if (epsilonGreedy)
-			return epsilonGreedyChoice(l);
+		if (egs.isEpsilonGreedy())
+			return egs.choice(l);
 		if (bs.isBoltzmann())
 			return bs.choice(l);
 		return null;
-	}
-
-	/** Epsilon-greedy choice of next action */
-	private IAction epsilonGreedyChoice(ActionList l) {
-		if (l.size() == 0)
-			return null;
-		IState s = l.getState();
-		IAction meilleure = l.get(0);
-		double maxqsap = memory.get(s, meilleure);
-		// TODO : might use an iterator
-		for (int i = 1; i < l.size(); i++) {
-			IAction a = l.get(i);
-			double qsap = memory.get(s, a);
-			if (qsap > maxqsap) {
-				maxqsap = qsap;
-				meilleure = a;
-			}
-		}
-		// TODO Beginning the method with this test should speed up the program
-		if (generator.nextDouble() > this.epsilon)
-			return meilleure;
-		else
-			return l.get(generator.nextInt(l.size()));
 	}
 
 	/** Auxiliary/debug method : find the best action from a state. */
@@ -302,7 +274,7 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 * @return the epsilon
 	 */
 	public double getEpsilon() {
-		return epsilon;
+		return egs.getEpsilon();
 	}
 
 	/**
@@ -310,7 +282,7 @@ abstract public class AbstractMemorySelector implements ISelector {
 	 *            the epsilon to set
 	 */
 	public void setEpsilon(double epsilon) {
-		this.epsilon = epsilon;
+		this.egs.setEpsilon(epsilon);
 	}
 
 	/**
